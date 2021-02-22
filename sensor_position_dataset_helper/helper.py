@@ -1,7 +1,6 @@
 """A set of helpers to load the dataset."""
 
 import json
-from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional, Dict, Any, Union, List
 
@@ -16,6 +15,38 @@ except ImportError:
 from gaitmap.utils.rotations import rotation_from_angle, rotate_dataset
 from sensor_position_dataset_helper.consts import Consts
 from typing_extensions import Literal
+import git
+
+
+def _get_repo_state(repo, version="HEAD"):
+    return repo.git.rev_parse(version)
+
+
+def ensure_git_revision(data_folder=None, version="HEAD"):
+    """Check if the local dataset folder is at the expected git-revision.
+
+    This is important for reproducibility.
+
+    This will raise a ValueError, if the repo is not at the expected version or has uncommitted changes.
+
+    If `data_folder = None`, the configured repo path will be used (if set).
+    """
+    data_folder = get_data_folder(data_folder)
+    repo = git.Repo(data_folder)
+    if repo.is_dirty(untracked_files=True):
+        raise ValueError("The dataset repo has uncommitted changes.")
+    try:
+        expected_version_hash = _get_repo_state(repo, version)
+    except git.GitCommandError as e:
+        if "unknown revision or path not in the working tree" in e.stderr:
+            raise ValueError("The expected version {} is not a valid git revision or git hash.".format(version)) from e
+        raise e
+    if _get_repo_state(repo, "HEAD") != expected_version_hash:
+        raise ValueError(
+            "The dataset is not at the expected version {} ({}) but at {}.".format(
+                version, expected_version_hash, _get_repo_state(repo, "HEAD")
+            )
+        )
 
 
 def set_data_folder(path):
