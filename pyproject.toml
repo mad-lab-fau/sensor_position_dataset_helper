@@ -1,0 +1,48 @@
+[tool.poetry]
+name = "sensor_position_dataset_helper"
+version = "1.0.0"
+description = ""
+authors = ["Arne Küderle <arne.kuederle@fau.de>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+numpy = "^1.20.0"
+scipy = "^1, <1.6"
+matplotlib = "^3.3.4"
+c3d = "^0.3.0"
+typing-extensions = "^3.7.4"
+nilspodlib = "^3.1"
+imucal = "^2.0.0"
+nilspodrefcal = {git = "https://mad-srv.informatik.uni-erlangen.de/MadLab/portabilestools/nilspodrefcal", rev = "6e65a699e80ba796ea8b9d65cb43a35551277a9c"}
+joblib = "^1.0.0"
+
+[tool.poetry.dev-dependencies]
+gaitmap = {git = "https://mad-srv.informatik.uni-erlangen.de/MadLab/GaitAnalysis/gaitmap.git", rev = "master"}
+tqdm = "^4.56.0"
+black = "^20.8b1"
+gaitmap-io = {git = "https://mad-srv.informatik.uni-erlangen.de/MadLab/GaitAnalysis/gaitmap-io", rev = "master"}
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 120
+target-version = ['py37']
+exclude = '''
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | docs
+    | build
+    | dist
+    | \.virtual_documents
+  )/
+)
+'''
