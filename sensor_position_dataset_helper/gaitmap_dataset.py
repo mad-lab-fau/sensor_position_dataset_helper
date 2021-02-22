@@ -47,25 +47,50 @@ def align_coordinates(multi_sensor_data: pd.DataFrame):
     return ds
 
 
-class SensorPositionDatasetSegmentation(Dataset):
-    dataset_path: Optional[Union[str, Path]]
+class _SensorPostionDataset(Dataset):
+    data_folder: Optional[Union[str, Path]]
     include_wrong_recording: bool
     memory: Optional[Memory]
 
     def __init__(
         self,
-        subset_index: Optional[pd.DataFrame] = None,
-        dataset_path: Optional[Union[str, Path]] = None,
+        data_folder: Optional[Union[str, Path]] = None,
+        *,
         include_wrong_recording: bool = False,
         memory: Optional[Memory] = None,
-        select_lvl: Optional[str] = None,
-        level_order: Optional[List[str]] = None,
+        groupby: Optional[Union[List[str], str]] = None,
+        subset_index: Optional[pd.DataFrame] = None,
     ):
-        self.dataset_path = dataset_path
+        self.data_folder = data_folder
         self.include_wrong_recording = include_wrong_recording
         self.memory = memory
-        super().__init__(subset_index, select_lvl, level_order)
+        super().__init__(groupby=groupby, subset_index=subset_index)
 
+    @property
+    def sampling_rate_hz(self) -> float:
+        return 204.8
+
+    @property
+    def segmented_stride_list_(self) -> StrideList:
+        if not self.is_single():
+            raise ValueError("Can only get stride lists single participant")
+        return self._get_segmented_stride_list(self.index)
+
+    def _get_segmented_stride_list(self, index) -> StrideList:
+        raise NotImplementedError()
+
+    @property
+    def segmented_stride_list_per_sensor_(self) -> StrideList:
+        stride_list = self.segmented_stride_list_
+        final_stride_list = {}
+        for foot in ["left", "right"]:
+            foot_stride_list = stride_list[stride_list["foot"] == foot][["start", "end"]]
+            for s in get_foot_sensor(foot):
+                final_stride_list[s] = foot_stride_list
+        return final_stride_list
+
+
+class SensorPositionDatasetSegmentation(_SensorPostionDataset):
     @property
     def data(self) -> MultiSensorData:
         if not self.is_single():
@@ -75,60 +100,25 @@ class SensorPositionDatasetSegmentation(Dataset):
                 "ignore", (LegacyWarning, CorruptedPackageWarning, CalibrationWarning, SynchronisationWarning)
             )
             df = get_memory(self.memory).cache(get_session_df)(
-                self.index["participant"].iloc[0], data_folder=self.dataset_path
+                self.index["participant"].iloc[0], data_folder=self.data_folder
             )
             df = df.reset_index(drop=True)
             df.index /= self.sampling_rate_hz
             df = get_memory(self.memory).cache(align_coordinates)(df)
             return df
 
-    @property
-    def sampling_rate_hz(self) -> float:
-        return 204.8
-
-    @property
-    def segmented_stride_list_(self) -> StrideList:
-        if not self.is_single():
-            raise ValueError("Can only get stride lists single participant")
-        stride_list = get_manual_labels(self.index["participant"].iloc[0], self.dataset_path)
+    def _get_segmented_stride_list(self, index) -> StrideList:
+        stride_list = get_manual_labels(index["participant"].iloc[0], self.data_folder)
         stride_list = stride_list.set_index("s_id")
         return stride_list
 
-    @property
-    def segmented_stride_list_per_sensor_(self) -> StrideList:
-        stride_list = self.segmented_stride_list_
-        final_stride_list = {}
-        for foot in ["left", "right"]:
-            foot_stride_list = stride_list[stride_list["foot"] == foot][["start", "end"]]
-            for s in get_foot_sensor(foot):
-                final_stride_list[s] = foot_stride_list
-        return final_stride_list
-
-    def _create_index(self) -> pd.DataFrame:
+    def create_index(self) -> pd.DataFrame:
         return pd.DataFrame(
-            {"participant": get_all_subjects(self.include_wrong_recording, data_folder=self.dataset_path)}
+            {"participant": get_all_subjects(self.include_wrong_recording, data_folder=self.data_folder)}
         )
 
 
-class SensorPositionDatasetMocap(Dataset):
-    dataset_path: Optional[Union[str, Path]]
-    include_wrong_recording: bool
-    memory: Optional[Memory]
-
-    def __init__(
-        self,
-        subset_index: Optional[pd.DataFrame] = None,
-        dataset_path: Optional[Union[str, Path]] = None,
-        include_wrong_recording: bool = False,
-        memory: Optional[Memory] = None,
-        select_lvl: Optional[str] = None,
-        level_order: Optional[List[str]] = None,
-    ):
-        self.dataset_path = dataset_path
-        self.include_wrong_recording = include_wrong_recording
-        self.memory = memory
-        super().__init__(subset_index, select_lvl, level_order)
-
+class SensorPositionDatasetMocap(_SensorPostionDataset):
     @property
     def data(self) -> MultiSensorData:
         if not self.is_single():
@@ -138,42 +128,25 @@ class SensorPositionDatasetMocap(Dataset):
                 "ignore", (LegacyWarning, CorruptedPackageWarning, CalibrationWarning, SynchronisationWarning)
             )
             session_df = get_memory(self.memory).cache(get_session_df)(
-                self.index["participant"].iloc[0], data_folder=self.dataset_path
+                self.index["participant"].iloc[0], data_folder=self.data_folder
             )
             df = get_imu_test(
                 self.index["participant"].iloc[0],
                 self.index["test"].iloc[0],
                 session_df=session_df,
-                data_folder=self.dataset_path,
+                data_folder=self.data_folder,
             )
             df = df.reset_index(drop=True)
             df.index /= self.sampling_rate_hz
             df = get_memory(self.memory).cache(align_coordinates)(df)
             return df
 
-    @property
-    def sampling_rate_hz(self) -> float:
-        return 204.8
-
-    @property
-    def segmented_stride_list_(self) -> StrideList:
-        if not self.is_single():
-            raise ValueError("Can only get stride lists single participant")
+    def _get_segmented_stride_list(self, index) -> StrideList:
         stride_list = get_manual_labels_for_test(
-            self.index["participant"].iloc[0], self.index["test"].iloc[0], data_folder=self.dataset_path
+            index["participant"].iloc[0], index["test"].iloc[0], data_folder=self.data_folder
         )
         stride_list = stride_list.set_index("s_id")
         return stride_list
-
-    @property
-    def segmented_stride_list_per_sensor_(self) -> StrideList:
-        stride_list = self.segmented_stride_list_
-        final_stride_list = {}
-        for foot in ["left", "right"]:
-            foot_stride_list = stride_list[stride_list["foot"] == foot][["start", "end"]]
-            for s in get_foot_sensor(foot):
-                final_stride_list[s] = foot_stride_list
-        return final_stride_list
 
     @property
     def mocap_events_(self) -> StrideList:
@@ -194,18 +167,16 @@ class SensorPositionDatasetMocap(Dataset):
         if not self.is_single():
             raise ValueError("Can only get position for lists single participant")
         df = get_memory(self.memory).cache(get_mocap_test)(
-            self.index["participant"].iloc[0], self.index["test"].iloc[0], data_folder=self.dataset_path
+            self.index["participant"].iloc[0], self.index["test"].iloc[0], data_folder=self.data_folder
         )
         df = df.reset_index()
         df.index /= self.mocap_sampling_rate_hz_
         return df
 
-    def _create_index(self) -> pd.DataFrame:
+    def create_index(self) -> pd.DataFrame:
         tests = (
             (p, t)
-            for p in get_all_subjects(self.include_wrong_recording, data_folder=self.dataset_path)
-            for t in get_all_tests(p, self.dataset_path)
+            for p in get_all_subjects(self.include_wrong_recording, data_folder=self.data_folder)
+            for t in get_all_tests(p, self.data_folder)
         )
         return pd.DataFrame(tests, columns=["participant", "test"])
-
-

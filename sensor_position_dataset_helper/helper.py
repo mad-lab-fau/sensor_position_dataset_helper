@@ -31,7 +31,7 @@ def ensure_git_revision(data_folder=None, version="HEAD"):
 
     If `data_folder = None`, the configured repo path will be used (if set).
     """
-    data_folder = get_data_folder(data_folder)
+    data_folder = get_data_folder(data_folder, data_subfolder=False)
     repo = git.Repo(data_folder)
     if repo.is_dirty(untracked_files=True):
         raise ValueError("The dataset repo has uncommitted changes.")
@@ -53,8 +53,10 @@ def set_data_folder(path):
     Consts._DATA = path
 
 
-def get_data_folder(data_folder):
-    data_folder = data_folder or Consts().DATA
+def get_data_folder(data_folder, data_subfolder=True):
+    data_folder = Path(data_folder or Consts().DATA)
+    if data_subfolder:
+        return Path(data_folder) / "data"
     return Path(data_folder)
 
 
