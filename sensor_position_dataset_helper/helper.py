@@ -53,7 +53,7 @@ def set_data_folder(path):
     Consts._DATA = path
 
 
-def get_data_folder(data_folder, data_subfolder=True):
+def get_data_folder(data_folder=None, data_subfolder=True):
     data_folder = Path(data_folder or Consts().DATA)
     if data_subfolder:
         return Path(data_folder) / "data"
