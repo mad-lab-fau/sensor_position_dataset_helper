@@ -4,7 +4,13 @@ from typing import Optional, List, Union
 
 import pandas as pd
 from gaitmap.future.dataset import Dataset
-from gaitmap.utils.datatype_helper import StrideList, MultiSensorData, PositionList, get_multi_sensor_names
+from gaitmap.utils.datatype_helper import (
+    StrideList,
+    MultiSensorData,
+    PositionList,
+    get_multi_sensor_names,
+    MultiSensorStrideList,
+)
 from gaitmap_io.coordinate_system_transformation import COORDINATE_TRANSFORMATION_DICT
 from imucal.management import CalibrationWarning
 from joblib import Memory
@@ -71,16 +77,17 @@ class _SensorPostionDataset(Dataset):
         return 204.8
 
     @property
-    def segmented_stride_list_(self) -> StrideList:
+    def segmented_stride_list_(self) -> MultiSensorStrideList:
         if not self.is_single():
             raise ValueError("Can only get stride lists single participant")
+        # TODO: Return this as dictionary
         return self._get_segmented_stride_list(self.index)
 
     def _get_segmented_stride_list(self, index) -> StrideList:
         raise NotImplementedError()
 
     @property
-    def segmented_stride_list_per_sensor_(self) -> StrideList:
+    def segmented_stride_list_per_sensor_(self) -> MultiSensorStrideList:
         stride_list = self.segmented_stride_list_
         final_stride_list = {}
         for foot in ["left", "right"]:
@@ -119,8 +126,40 @@ class SensorPositionDatasetSegmentation(_SensorPostionDataset):
 
 
 class SensorPositionDatasetMocap(_SensorPostionDataset):
+    data_padding_s: int
+    align_data: bool
+
+    def __init__(
+        self,
+        data_folder: Optional[Union[str, Path]] = None,
+        *,
+        include_wrong_recording: bool = False,
+        data_padding_s: int = 0,
+        align_data: bool = True,
+        memory: Optional[Memory] = None,
+        groupby: Optional[Union[List[str], str]] = None,
+        subset_index: Optional[pd.DataFrame] = None,
+    ):
+        self.data_padding_s = data_padding_s
+        self.align_data = align_data
+        super().__init__(
+            data_folder,
+            include_wrong_recording=include_wrong_recording,
+            memory=memory,
+            groupby=groupby,
+            subset_index=subset_index,
+        )
+
     @property
     def data(self) -> MultiSensorData:
+        """The data per gait test.
+
+        Get the data per gait test.
+        If `self.data_padding_s` is set, the extracted data region extends by that amount of second beyond the actual
+        gait test.
+        Keep that in mind, when aligning data to mocap.
+        The time axis is provided in seconds and the 0 will be at the actual start of the gait test.
+        """
         if not self.is_single():
             raise ValueError("Can only get data for a single participant")
         with warnings.catch_warnings():
@@ -130,15 +169,20 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
             session_df = get_memory(self.memory).cache(get_session_df)(
                 self.index["participant"].iloc[0], data_folder=self.data_folder
             )
+            if self.align_data is True:
+                session_df = get_memory(self.memory).cache(align_coordinates)(session_df)
             df = get_imu_test(
                 self.index["participant"].iloc[0],
                 self.index["test"].iloc[0],
                 session_df=session_df,
                 data_folder=self.data_folder,
+                padding_s=self.data_padding_s,
             )
             df = df.reset_index(drop=True)
             df.index /= self.sampling_rate_hz
-            df = get_memory(self.memory).cache(align_coordinates)(df)
+            df.index -= self.data_padding_s
+            df.index.name = "time after start [s]"
+
             return df
 
     def _get_segmented_stride_list(self, index) -> StrideList:
@@ -146,10 +190,12 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
             index["participant"].iloc[0], index["test"].iloc[0], data_folder=self.data_folder
         )
         stride_list = stride_list.set_index("s_id")
+        stride_list[["start", "end"]] += int(self.data_padding_s * self.sampling_rate_hz)
         return stride_list
 
     @property
     def mocap_events_(self) -> StrideList:
+        # TODO: Handle data offset
         if not self.is_single():
             raise ValueError("Can only get stride lists single participant")
         mocap_events = pd.read_csv(
@@ -164,6 +210,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
 
     @property
     def marker_position_(self) -> PositionList:
+        # TODO: Handle data offset
         if not self.is_single():
             raise ValueError("Can only get position for lists single participant")
         df = get_memory(self.memory).cache(get_mocap_test)(
