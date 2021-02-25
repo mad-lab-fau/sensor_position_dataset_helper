@@ -78,10 +78,13 @@ class _SensorPostionDataset(Dataset):
 
     @property
     def segmented_stride_list_(self) -> MultiSensorStrideList:
+        """Returns the manual segmented stride list per foot."""
         if not self.is_single():
             raise ValueError("Can only get stride lists single participant")
-        # TODO: Return this as dictionary
-        return self._get_segmented_stride_list(self.index)
+        sl = self._get_segmented_stride_list(self.index)
+        sl.index = sl.index.astype(int)
+        sl = {k: v.drop("foot", axis=1) for k, v in sl.groupby("foot")}
+        return sl
 
     def _get_segmented_stride_list(self, index) -> StrideList:
         raise NotImplementedError()
@@ -91,7 +94,7 @@ class _SensorPostionDataset(Dataset):
         stride_list = self.segmented_stride_list_
         final_stride_list = {}
         for foot in ["left", "right"]:
-            foot_stride_list = stride_list[stride_list["foot"] == foot][["start", "end"]]
+            foot_stride_list = stride_list[foot][["start", "end"]]
             for s in get_foot_sensor(foot):
                 final_stride_list[s] = foot_stride_list
         return final_stride_list
@@ -185,12 +188,16 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
 
             return df
 
+    @property
+    def data_padding_imu_samples(self):
+        return int(round(self.data_padding_s * self.sampling_rate_hz))
+
     def _get_segmented_stride_list(self, index) -> StrideList:
         stride_list = get_manual_labels_for_test(
             index["participant"].iloc[0], index["test"].iloc[0], data_folder=self.data_folder
         )
         stride_list = stride_list.set_index("s_id")
-        stride_list[["start", "end"]] += int(self.data_padding_s * self.sampling_rate_hz)
+        stride_list[["start", "end"]] += self.data_padding_imu_samples
         return stride_list
 
     @property

@@ -201,7 +201,10 @@ def get_mocap_test(subject: str, test_name: str, data_folder=None) -> pd.DataFra
     comparison is possible.
     """
     folder = get_subject_folder(subject, data_folder=data_folder)
-    return load_c3d_data(folder / "mocap/{}.c3d".format(test_name))
+    try:
+        return load_c3d_data(folder / "mocap/{}.c3d".format(test_name))
+    except FileNotFoundError as e:
+        raise FileNotFoundError("No Mocap data exists for subject {} and test {}".format(subject, test_name)) from e
 
 
 def get_metadata_subject(subject_id: str, data_folder=None) -> Dict[str, Any]:
@@ -241,7 +244,6 @@ def load_c3d_data(path: Union[Path, str], insert_nan: bool = True) -> pd.DataFra
         If True missing values in the marker paths will be indicated with a np.nan. Otherwise there are just 0 (?)
 
     """
-
     with open(path, "rb") as handle:
         reader = c3d.Reader(handle)
         frames = []
