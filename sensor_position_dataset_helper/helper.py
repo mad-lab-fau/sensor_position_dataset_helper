@@ -94,6 +94,14 @@ def get_subject_mocap_folder(subject_id: str, data_folder=None) -> Path:
     return get_subject_folder(subject_id, data_folder=data_folder) / "mocap"
 
 
+def get_mocap_events(subject_id, test, data_folder=None) -> pd.DataFrame:
+    """Get all Mocap events extracted with the Zeni Algorithm.
+
+    Note that the events are provided in mocap samples after the start of the test.
+    """
+    return pd.read_csv(get_subject_mocap_folder(subject_id, data_folder=data_folder) / (test + "_steps.csv"))
+
+
 def get_session_df(subject_id: str, data_folder=None) -> pd.DataFrame:
     """Get and prepare the data of all sensors of a subject.
 
@@ -243,11 +251,10 @@ def load_c3d_data(path: Union[Path, str], insert_nan: bool = True) -> pd.DataFra
 
         a = reader.groups["POINT"].params["LABELS"]
         C, R = a.dimensions
-        labels = [a.bytes[r * C : (r + 1) * C].strip().decode() for r in range(R)]
+        labels = [a.bytes[r * C : (r + 1) * C].strip().decode().lower() for r in range(R)]
 
         frames = np.stack(frames)
         frames = frames.reshape(frames.shape[0], -1)
-
     index = pd.MultiIndex.from_product([labels, list("xyz")])
     data = pd.DataFrame(frames, columns=index)
     if insert_nan is True:
@@ -265,5 +272,5 @@ def get_foot_sensor(foot: Literal["left", "right"], include_insole: bool = True)
 
 def get_foot_marker(foot: Literal["left", "right"]) -> List[str]:
     """Get the names of all markers that are attached ot a foot (left or right)"""
-    sensors = ["{}_FCC", "{}_TOE", "{}_FM5", "{}_FM1"]
-    return [s.format(foot[0].upper()) for s in sensors]
+    sensors = ["{}_fcc", "{}_toe", "{}_fm5", "{}_fm1"]
+    return [s.format(foot[0]) for s in sensors]

@@ -195,11 +195,15 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
 
     @property
     def mocap_events_(self) -> StrideList:
-        # TODO: Handle data offset
+        """Get mocap events calculated the Zeni Algorithm.
+
+        Note that the events are provided in mocap samples after the start of the test.
+        `self.data_padding_s` is also ignored.
+        """
         if not self.is_single():
             raise ValueError("Can only get stride lists single participant")
-        mocap_events = pd.read_csv(
-            get_subject_mocap_folder(self.index["participant"].iloc[0]) / (self.index["test"].iloc[0] + "_steps.csv")
+        mocap_events = get_mocap_events(
+            self.index["participant"].iloc[0], self.index["test"].iloc[0], data_folder=self.data_folder
         )
         mocap_events = {k: v.drop("foot", axis=1) for k, v in mocap_events.groupby("foot")}
         return mocap_events
@@ -210,14 +214,18 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
 
     @property
     def marker_position_(self) -> PositionList:
-        # TODO: Handle data offset
+        """Get the marker trajectories of a test.
+
+        Note the index is provided in seconds after the start of the test.
+        """
         if not self.is_single():
             raise ValueError("Can only get position for lists single participant")
         df = get_memory(self.memory).cache(get_mocap_test)(
             self.index["participant"].iloc[0], self.index["test"].iloc[0], data_folder=self.data_folder
         )
-        df = df.reset_index()
+        df = df.reset_index(drop=True)
         df.index /= self.mocap_sampling_rate_hz_
+        df.index.name = "time after start [s]"
         return df
 
     def create_index(self) -> pd.DataFrame:
