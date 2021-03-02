@@ -25,6 +25,7 @@ from sensor_position_dataset_helper import (
     get_imu_test,
     get_manual_labels_for_test,
     get_mocap_test,
+    get_mocap_events,
     get_subject_mocap_folder,
     get_foot_sensor,
     rotate_dataset,
@@ -64,13 +65,13 @@ class _SensorPostionDataset(Dataset):
         *,
         include_wrong_recording: bool = False,
         memory: Optional[Memory] = None,
-        groupby: Optional[Union[List[str], str]] = None,
+        groupby_cols: Optional[Union[List[str], str]] = None,
         subset_index: Optional[pd.DataFrame] = None,
     ):
         self.data_folder = data_folder
         self.include_wrong_recording = include_wrong_recording
         self.memory = memory
-        super().__init__(groupby=groupby, subset_index=subset_index)
+        super().__init__(groupby_cols=groupby_cols, subset_index=subset_index)
 
     @property
     def sampling_rate_hz(self) -> float:
@@ -79,8 +80,7 @@ class _SensorPostionDataset(Dataset):
     @property
     def segmented_stride_list_(self) -> MultiSensorStrideList:
         """Returns the manual segmented stride list per foot."""
-        if not self.is_single():
-            raise ValueError("Can only get stride lists single participant")
+        self.assert_is_single(None, "segmented_stride_list_")
         sl = self._get_segmented_stride_list(self.index)
         sl.index = sl.index.astype(int)
         sl = {k: v.drop("foot", axis=1) for k, v in sl.groupby("foot")}
@@ -103,8 +103,7 @@ class _SensorPostionDataset(Dataset):
 class SensorPositionDatasetSegmentation(_SensorPostionDataset):
     @property
     def data(self) -> MultiSensorData:
-        if not self.is_single():
-            raise ValueError("Can only get data for a single participant")
+        self.assert_is_single(None, "data")
         with warnings.catch_warnings():
             warnings.simplefilter(
                 "ignore", (LegacyWarning, CorruptedPackageWarning, CalibrationWarning, SynchronisationWarning)
@@ -140,7 +139,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
         data_padding_s: int = 0,
         align_data: bool = True,
         memory: Optional[Memory] = None,
-        groupby: Optional[Union[List[str], str]] = None,
+        groupby_cols: Optional[Union[List[str], str]] = None,
         subset_index: Optional[pd.DataFrame] = None,
     ):
         self.data_padding_s = data_padding_s
@@ -149,7 +148,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
             data_folder,
             include_wrong_recording=include_wrong_recording,
             memory=memory,
-            groupby=groupby,
+            groupby_cols=groupby_cols,
             subset_index=subset_index,
         )
 
@@ -163,8 +162,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
         Keep that in mind, when aligning data to mocap.
         The time axis is provided in seconds and the 0 will be at the actual start of the gait test.
         """
-        if not self.is_single():
-            raise ValueError("Can only get data for a single participant")
+        self.assert_is_single(None, "data")
         with warnings.catch_warnings():
             warnings.simplefilter(
                 "ignore", (LegacyWarning, CorruptedPackageWarning, CalibrationWarning, SynchronisationWarning)
@@ -207,8 +205,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
         Note that the events are provided in mocap samples after the start of the test.
         `self.data_padding_s` is also ignored.
         """
-        if not self.is_single():
-            raise ValueError("Can only get stride lists single participant")
+        self.assert_is_single(None, "mocap_events_")
         mocap_events = get_mocap_events(
             self.index["participant"].iloc[0], self.index["test"].iloc[0], data_folder=self.data_folder
         )
@@ -225,8 +222,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
 
         Note the index is provided in seconds after the start of the test.
         """
-        if not self.is_single():
-            raise ValueError("Can only get position for lists single participant")
+        self.assert_is_single(None, "marker_position_")
         df = get_memory(self.memory).cache(get_mocap_test)(
             self.index["participant"].iloc[0], self.index["test"].iloc[0], data_folder=self.data_folder
         )
