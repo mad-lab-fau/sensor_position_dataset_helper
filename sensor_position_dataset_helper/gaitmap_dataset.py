@@ -80,8 +80,7 @@ class _SensorPostionDataset(Dataset):
     @property
     def segmented_stride_list_(self) -> MultiSensorStrideList:
         """Returns the manual segmented stride list per foot."""
-        if not self.is_single():
-            raise ValueError("Can only get stride lists single participant")
+        self.assert_is_single(None, "segmented_stride_list_")
         sl = self._get_segmented_stride_list(self.index)
         sl.index = sl.index.astype(int)
         sl = {k: v.drop("foot", axis=1) for k, v in sl.groupby("foot")}
@@ -104,8 +103,7 @@ class _SensorPostionDataset(Dataset):
 class SensorPositionDatasetSegmentation(_SensorPostionDataset):
     @property
     def data(self) -> MultiSensorData:
-        if not self.is_single():
-            raise ValueError("Can only get data for a single participant")
+        self.assert_is_single(None, "data")
         with warnings.catch_warnings():
             warnings.simplefilter(
                 "ignore", (LegacyWarning, CorruptedPackageWarning, CalibrationWarning, SynchronisationWarning)
@@ -164,8 +162,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
         Keep that in mind, when aligning data to mocap.
         The time axis is provided in seconds and the 0 will be at the actual start of the gait test.
         """
-        if not self.is_single():
-            raise ValueError("Can only get data for a single participant")
+        self.assert_is_single(None, "data")
         with warnings.catch_warnings():
             warnings.simplefilter(
                 "ignore", (LegacyWarning, CorruptedPackageWarning, CalibrationWarning, SynchronisationWarning)
@@ -208,8 +205,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
         Note that the events are provided in mocap samples after the start of the test.
         `self.data_padding_s` is also ignored.
         """
-        if not self.is_single():
-            raise ValueError("Can only get stride lists single participant")
+        self.assert_is_single(None, "mocap_events_")
         mocap_events = get_mocap_events(
             self.index["participant"].iloc[0], self.index["test"].iloc[0], data_folder=self.data_folder
         )
@@ -226,8 +222,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
 
         Note the index is provided in seconds after the start of the test.
         """
-        if not self.is_single():
-            raise ValueError("Can only get position for lists single participant")
+        self.assert_is_single(None, "marker_position_")
         df = get_memory(self.memory).cache(get_mocap_test)(
             self.index["participant"].iloc[0], self.index["test"].iloc[0], data_folder=self.data_folder
         )
