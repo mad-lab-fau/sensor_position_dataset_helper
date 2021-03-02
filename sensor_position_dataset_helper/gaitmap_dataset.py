@@ -64,13 +64,13 @@ class _SensorPostionDataset(Dataset):
         *,
         include_wrong_recording: bool = False,
         memory: Optional[Memory] = None,
-        groupby: Optional[Union[List[str], str]] = None,
+        groupby_cols: Optional[Union[List[str], str]] = None,
         subset_index: Optional[pd.DataFrame] = None,
     ):
         self.data_folder = data_folder
         self.include_wrong_recording = include_wrong_recording
         self.memory = memory
-        super().__init__(groupby=groupby, subset_index=subset_index)
+        super().__init__(groupby_cols=groupby_cols, subset_index=subset_index)
 
     @property
     def sampling_rate_hz(self) -> float:
@@ -140,7 +140,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
         data_padding_s: int = 0,
         align_data: bool = True,
         memory: Optional[Memory] = None,
-        groupby: Optional[Union[List[str], str]] = None,
+        groupby_cols: Optional[Union[List[str], str]] = None,
         subset_index: Optional[pd.DataFrame] = None,
     ):
         self.data_padding_s = data_padding_s
@@ -149,7 +149,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
             data_folder,
             include_wrong_recording=include_wrong_recording,
             memory=memory,
-            groupby=groupby,
+            groupby_cols=groupby_cols,
             subset_index=subset_index,
         )
 
