@@ -25,6 +25,7 @@ from sensor_position_dataset_helper import (
     get_imu_test,
     get_manual_labels_for_test,
     get_mocap_test,
+    get_mocap_events,
     get_subject_mocap_folder,
     get_foot_sensor,
     rotate_dataset,
