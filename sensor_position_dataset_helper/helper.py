@@ -8,10 +8,7 @@ import c3d
 import numpy as np
 import pandas as pd
 
-try:
-    from NilsPodLib import SyncedSession
-except ImportError:
-    from nilspodlib import SyncedSession
+from nilspodlib import SyncedSession
 from gaitmap.utils.rotations import rotation_from_angle, rotate_dataset
 from sensor_position_dataset_helper.consts import Consts
 from typing_extensions import Literal
@@ -117,7 +114,11 @@ def get_session_df(subject_id: str, data_folder=None) -> pd.DataFrame:
         get_subject_imu_folder(subject_id, data_folder=data_folder), legacy_support="resolve"
     )
     session = session.align_to_syncregion()
-    session = session.calibrate_imu(session.find_closest_calibration(ignore_file_not_found=True))
+    session = session.calibrate_imu(
+        session.find_closest_calibration(
+            ignore_file_not_found=True, folder=get_data_folder(data_folder, data_subfolder=False) / "calibrations"
+        )
+    )
 
     meta_data = get_metadata_subject(subject_id, data_folder=data_folder)
     sensor_map = {v.lower(): k for k, v in meta_data["sensors"].items()}

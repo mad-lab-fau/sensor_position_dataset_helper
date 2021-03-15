@@ -12,7 +12,6 @@ c3d = "^0.3.0"
 typing-extensions = "^3.7.4"
 nilspodlib = "^3.1"
 imucal = "^2.0.0"
-nilspodrefcal = {git = "https://mad-srv.informatik.uni-erlangen.de/MadLab/portabilestools/nilspodrefcal", rev = "6e65a699e80ba796ea8b9d65cb43a35551277a9c"}
 joblib = "^1.0.0"
 GitPython = "^3.1.13"
 pandas = "^1.2.2"
