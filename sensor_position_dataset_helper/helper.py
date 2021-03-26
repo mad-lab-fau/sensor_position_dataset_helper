@@ -116,7 +116,7 @@ def get_session_df(subject_id: str, data_folder=None) -> pd.DataFrame:
     session = session.align_to_syncregion()
     session = session.calibrate_imu(
         session.find_closest_calibration(
-            ignore_file_not_found=True, folder=get_data_folder(data_folder, data_subfolder=False) / "calibrations"
+            ignore_file_not_found=False, folder=get_data_folder(data_folder, data_subfolder=False) / "calibrations"
         )
     )
 
