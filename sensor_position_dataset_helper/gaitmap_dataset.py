@@ -26,7 +26,6 @@ from sensor_position_dataset_helper import (
     get_manual_labels_for_test,
     get_mocap_test,
     get_mocap_events,
-    get_subject_mocap_folder,
     get_foot_sensor,
     rotate_dataset,
 )
@@ -58,12 +57,14 @@ class _SensorPostionDataset(Dataset):
     data_folder: Optional[Union[str, Path]]
     include_wrong_recording: bool
     memory: Optional[Memory]
+    align_data: bool
 
     def __init__(
         self,
         data_folder: Optional[Union[str, Path]] = None,
         *,
         include_wrong_recording: bool = False,
+        align_data: bool = True,
         memory: Optional[Memory] = None,
         groupby_cols: Optional[Union[List[str], str]] = None,
         subset_index: Optional[pd.DataFrame] = None,
@@ -71,6 +72,7 @@ class _SensorPostionDataset(Dataset):
         self.data_folder = data_folder
         self.include_wrong_recording = include_wrong_recording
         self.memory = memory
+        self.align_data = align_data
         super().__init__(groupby_cols=groupby_cols, subset_index=subset_index)
 
     @property
@@ -89,6 +91,19 @@ class _SensorPostionDataset(Dataset):
     def _get_segmented_stride_list(self, index) -> StrideList:
         raise NotImplementedError()
 
+    def _get_base_df(self):
+        self.assert_is_single(None, "data")
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                "ignore", (LegacyWarning, CorruptedPackageWarning, CalibrationWarning, SynchronisationWarning)
+            )
+            session_df = get_memory(self.memory).cache(get_session_df)(
+                self.index["participant"].iloc[0], data_folder=self.data_folder
+            )
+            if self.align_data is True:
+                session_df = get_memory(self.memory).cache(align_coordinates)(session_df)
+        return session_df
+
     @property
     def segmented_stride_list_per_sensor_(self) -> MultiSensorStrideList:
         stride_list = self.segmented_stride_list_
@@ -103,18 +118,11 @@ class _SensorPostionDataset(Dataset):
 class SensorPositionDatasetSegmentation(_SensorPostionDataset):
     @property
     def data(self) -> MultiSensorData:
-        self.assert_is_single(None, "data")
-        with warnings.catch_warnings():
-            warnings.simplefilter(
-                "ignore", (LegacyWarning, CorruptedPackageWarning, CalibrationWarning, SynchronisationWarning)
-            )
-            df = get_memory(self.memory).cache(get_session_df)(
-                self.index["participant"].iloc[0], data_folder=self.data_folder
-            )
-            df = df.reset_index(drop=True)
-            df.index /= self.sampling_rate_hz
-            df = get_memory(self.memory).cache(align_coordinates)(df)
-            return df
+        df = self._get_base_df()
+        df = df.reset_index(drop=True)
+        df.index /= self.sampling_rate_hz
+        df = get_memory(self.memory).cache(align_coordinates)(df)
+        return df
 
     def _get_segmented_stride_list(self, index) -> StrideList:
         stride_list = get_manual_labels(index["participant"].iloc[0], self.data_folder)
@@ -129,7 +137,6 @@ class SensorPositionDatasetSegmentation(_SensorPostionDataset):
 
 class SensorPositionDatasetMocap(_SensorPostionDataset):
     data_padding_s: int
-    align_data: bool
 
     def __init__(
         self,
@@ -137,13 +144,11 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
         *,
         include_wrong_recording: bool = False,
         data_padding_s: int = 0,
-        align_data: bool = True,
         memory: Optional[Memory] = None,
         groupby_cols: Optional[Union[List[str], str]] = None,
         subset_index: Optional[pd.DataFrame] = None,
     ):
         self.data_padding_s = data_padding_s
-        self.align_data = align_data
         super().__init__(
             data_folder,
             include_wrong_recording=include_wrong_recording,
@@ -162,29 +167,20 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
         Keep that in mind, when aligning data to mocap.
         The time axis is provided in seconds and the 0 will be at the actual start of the gait test.
         """
-        self.assert_is_single(None, "data")
-        with warnings.catch_warnings():
-            warnings.simplefilter(
-                "ignore", (LegacyWarning, CorruptedPackageWarning, CalibrationWarning, SynchronisationWarning)
-            )
-            session_df = get_memory(self.memory).cache(get_session_df)(
-                self.index["participant"].iloc[0], data_folder=self.data_folder
-            )
-            if self.align_data is True:
-                session_df = get_memory(self.memory).cache(align_coordinates)(session_df)
-            df = get_imu_test(
-                self.index["participant"].iloc[0],
-                self.index["test"].iloc[0],
-                session_df=session_df,
-                data_folder=self.data_folder,
-                padding_s=self.data_padding_s,
-            )
-            df = df.reset_index(drop=True)
-            df.index /= self.sampling_rate_hz
-            df.index -= self.data_padding_s
-            df.index.name = "time after start [s]"
+        session_df = self._get_base_df()
+        df = get_imu_test(
+            self.index["participant"].iloc[0],
+            self.index["test"].iloc[0],
+            session_df=session_df,
+            data_folder=self.data_folder,
+            padding_s=self.data_padding_s,
+        )
+        df = df.reset_index(drop=True)
+        df.index /= self.sampling_rate_hz
+        df.index -= self.data_padding_s
+        df.index.name = "time after start [s]"
 
-            return df
+        return df
 
     @property
     def data_padding_imu_samples(self):
