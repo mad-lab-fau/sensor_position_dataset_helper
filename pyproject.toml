@@ -20,6 +20,7 @@ pandas = "^1.2.2"
 gaitmap = {git = "https://mad-srv.informatik.uni-erlangen.de/MadLab/GaitAnalysis/gaitmap.git", rev = "master"}
 black = "^20.8b1"
 gaitmap-io = {git = "https://mad-srv.informatik.uni-erlangen.de/MadLab/GaitAnalysis/gaitmap-io", rev = "master"}
+pytest = "^6.2.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
