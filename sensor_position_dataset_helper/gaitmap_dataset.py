@@ -121,7 +121,6 @@ class SensorPositionDatasetSegmentation(_SensorPostionDataset):
         df = self._get_base_df()
         df = df.reset_index(drop=True)
         df.index /= self.sampling_rate_hz
-        df = get_memory(self.memory).cache(align_coordinates)(df)
         return df
 
     def _get_segmented_stride_list(self, index) -> StrideList:
@@ -143,6 +142,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
         data_folder: Optional[Union[str, Path]] = None,
         *,
         include_wrong_recording: bool = False,
+        align_data: bool = True,
         data_padding_s: int = 0,
         memory: Optional[Memory] = None,
         groupby_cols: Optional[Union[List[str], str]] = None,
@@ -152,6 +152,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
         super().__init__(
             data_folder,
             include_wrong_recording=include_wrong_recording,
+            align_data=align_data,
             memory=memory,
             groupby_cols=groupby_cols,
             subset_index=subset_index,
