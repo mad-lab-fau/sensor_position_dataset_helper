@@ -53,6 +53,13 @@ def align_coordinates(multi_sensor_data: pd.DataFrame):
     return ds
 
 
+def get_session_and_align(participant, data_folder):
+    session_df = get_session_df(
+        participant, data_folder=data_folder
+    )
+    return align_coordinates(session_df)
+
+
 class _SensorPostionDataset(Dataset):
     data_folder: Optional[Union[str, Path]]
     include_wrong_recording: bool
@@ -97,11 +104,12 @@ class _SensorPostionDataset(Dataset):
             warnings.simplefilter(
                 "ignore", (LegacyWarning, CorruptedPackageWarning, CalibrationWarning, SynchronisationWarning)
             )
-            session_df = get_memory(self.memory).cache(get_session_df)(
-                self.index["participant"].iloc[0], data_folder=self.data_folder
-            )
             if self.align_data is True:
-                session_df = get_memory(self.memory).cache(align_coordinates)(session_df)
+                session_df = get_memory(self.memory).cache(get_session_and_align)(self.index["participant"].iloc[0], data_folder=self.data_folder)
+            else:
+                session_df = get_memory(self.memory).cache(get_session_df)(
+                    self.index["participant"].iloc[0], data_folder=self.data_folder
+                )
         return session_df
 
     @property
