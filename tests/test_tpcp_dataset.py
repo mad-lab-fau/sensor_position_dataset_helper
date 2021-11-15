@@ -1,9 +1,8 @@
 import pytest
-from gaitmap.utils.datatype_helper import get_multi_sensor_names
 from pandas._testing import assert_frame_equal
 
 from sensor_position_dataset_helper import get_metadata_subject
-from sensor_position_dataset_helper.gaitmap_dataset import SensorPositionDatasetMocap, SensorPositionDatasetSegmentation
+from sensor_position_dataset_helper.tpcp_dataset import SensorPositionDatasetMocap, SensorPositionDatasetSegmentation
 from .conftest import CACHE, load_or_store_snapshot
 
 
@@ -61,8 +60,7 @@ def test_data_regression(dataset_path, base_class):
 
     # Store first samples of all sensors as regression data
     data = ds.data.iloc[:20]
-    for name in get_multi_sensor_names(data.drop("sync", axis=1)):
+    for name in data.drop("sync", axis=1).columns.unique(level=0):
         compare = load_or_store_snapshot("test_data_regression_{}_{}".format(base_class.__name__, name), data[name])
 
         assert_frame_equal(data[name], compare)
-

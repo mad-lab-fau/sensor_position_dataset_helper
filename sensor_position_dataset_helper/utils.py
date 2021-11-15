@@ -1,5 +1,6 @@
 import numpy as np
-from gaitmap.utils.vector_math import normalize
+
+from sensor_position_dataset_helper.internal_helpers import normalize
 
 
 def find_plane_from_points(p1: np.ndarray, p2: np.ndarray, p3: np.ndarray) -> np.ndarray:

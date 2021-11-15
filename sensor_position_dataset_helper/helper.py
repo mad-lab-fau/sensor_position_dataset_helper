@@ -5,14 +5,14 @@ from pathlib import Path
 from typing import Optional, Dict, Any, Union, List
 
 import c3d
+import git
 import numpy as np
 import pandas as pd
-
 from nilspodlib import SyncedSession
-from gaitmap.utils.rotations import rotation_from_angle, rotate_dataset
-from sensor_position_dataset_helper.consts import Consts
 from typing_extensions import Literal
-import git
+
+from sensor_position_dataset_helper.consts import Consts
+from sensor_position_dataset_helper.internal_helpers import rotation_from_angle, rotate_dataset
 
 
 def _get_repo_state(repo, version="HEAD"):
@@ -65,14 +65,15 @@ def get_all_subjects(include_wrong_recording: bool = False, data_folder=None):
     """
     data_folders = sorted(get_data_folder(data_folder).glob("[!.]*"), key=lambda x: x.name)
     if len(data_folders) == 0 or not all(len(f.name) in (4, 6) for f in data_folders):
-        raise ValueError("The selected folder does not seem to be correct! "
-                         "No data could be found. "
-                         f'The selected folder is: "{data_folder}"')
+        raise ValueError(
+            "The selected folder does not seem to be correct! "
+            "No data could be found. "
+            f'The selected folder is: "{data_folder}"'
+        )
     for subject in data_folders:
         if subject.name == "6dbe" and not include_wrong_recording:
             continue
         yield subject.name
-
 
 
 def get_all_tests(subject_id: str, data_folder=None):

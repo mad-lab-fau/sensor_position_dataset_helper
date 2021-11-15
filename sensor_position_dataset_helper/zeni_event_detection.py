@@ -2,13 +2,12 @@
 from typing import Optional
 
 import numpy as np
-from gaitmap.base import BaseAlgorithm
-from gaitmap.utils.array_handling import sliding_window_view
-from gaitmap.utils.datatype_helper import is_single_sensor_stride_list, SingleSensorStrideList
-from gaitmap.utils.stride_list_conversion import enforce_stride_list_consistency
+import pandas as pd
+
+from sensor_position_dataset_helper.internal_helpers import sliding_window_view, enforce_stride_list_consistency
 
 
-class ZeniEventDetection(BaseAlgorithm):
+class ZeniEventDetection:
     """Detect relevant events based on marker information.
 
     The original algorithm is expended by a Zero-Velocity detection.
@@ -19,14 +18,14 @@ class ZeniEventDetection(BaseAlgorithm):
 
     min_vel_search_win_size: int
 
-    segmented_event_list_: SingleSensorStrideList
+    segmented_event_list_: pd.DataFrame
     forward_direction_: np.ndarray
     fcc_l5_distance_: np.ndarray
     toe_l5_distance_: np.ndarray
 
     fcc: np.ndarray
     toe: np.ndarray
-    stride_list: SingleSensorStrideList
+    stride_list: pd.DataFrame
     sagittal_plane_normal: Optional[np.ndarray]
 
     _z_axis: np.ndarray = np.array([0, 0, 1.0])
@@ -43,12 +42,9 @@ class ZeniEventDetection(BaseAlgorithm):
         l5: np.ndarray,
         fcc: np.ndarray,
         toe: np.ndarray,
-        stride_list: SingleSensorStrideList,
+        stride_list: pd.DataFrame,
         sagittal_plane_normal: Optional[np.ndarray] = None,
     ):
-        if not is_single_sensor_stride_list(stride_list, stride_type="any"):
-            raise ValueError("Type of stride list not supported.")
-
         self.fcc = fcc
         self.toe = toe
         self.stride_list = stride_list

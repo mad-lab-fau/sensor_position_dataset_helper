@@ -12,13 +12,6 @@ pip install git+https://mad-srv.informatik.uni-erlangen.de/MadLab/data/SensorPos
 poetry add git+https://mad-srv.informatik.uni-erlangen.de/MadLab/data/SensorPositionComparisonHelper
 ```
 
-Note, that this does not install [gaitmap](https://mad-srv.informatik.uni-erlangen.de/MadLab/GaitAnalysis/gaitmap) and 
-[gaitmap-io](https://mad-srv.informatik.uni-erlangen.de/MadLab/GaitAnalysis/gaitmap-io), which are both required for 
-this package, as they can often lead to dependency conflicts, because resolving git dependencies with poetry does not
-always work.
-
-Install versions of these libraries that work for you.
-
 ## Dataset Handling
 You also need to download the actual Dataset from [here](https://mad-srv.informatik.uni-erlangen.de/MadLab/data/sensorpositoncomparison).
 
@@ -39,10 +32,10 @@ from sensor_position_dataset_helper import get_all_subjects
 get_all_subjects(data_folder="PATH/TO/THE_DATASET")
 ```
 
-If you are using the gaitmap-dataset objects, you need to provide the path in the init.
+If you are using the tpcp-dataset objects, you need to provide the path in the init.
 
 ```python
-from sensor_position_dataset_helper.gaitmap_dataset import SensorPositionDatasetSegmentation
+from sensor_position_dataset_helper.tpcp_dataset import SensorPositionDatasetSegmentation
 
 dataset = SensorPositionDatasetSegmentation(dataset_path="PATH/TO/THE_DATASET")
 ```

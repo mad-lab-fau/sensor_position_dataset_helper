@@ -3,11 +3,11 @@ from pathlib import Path
 from typing import Optional, List, Union, Dict
 
 import pandas as pd
-from gaitmap.future.dataset import Dataset
 from imucal.management import CalibrationWarning
 from joblib import Memory
 from nilspodlib.exceptions import LegacyWarning, CorruptedPackageWarning, SynchronisationWarning
 from scipy.spatial.transform import Rotation
+from tpcp.dataset import Dataset
 
 from sensor_position_dataset_helper import (
     get_all_subjects,
