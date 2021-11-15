@@ -63,10 +63,16 @@ def get_all_subjects(include_wrong_recording: bool = False, data_folder=None):
     If `include_wrong_recording` the first recording of 6dbe is included.
     This recording is missing one of the sensors and should therefore not be used in most cases.
     """
-    for subject in sorted(get_data_folder(data_folder).glob("[!.]*"), key=lambda x: x.name):
+    data_folders = sorted(get_data_folder(data_folder).glob("[!.]*"), key=lambda x: x.name)
+    if len(data_folders) == 0 or not all(len(f.name) in (4, 6) for f in data_folders):
+        raise ValueError("The selected folder does not seem to be correct! "
+                         "No data could be found. "
+                         f'The selected folder is: "{data_folder}"')
+    for subject in data_folders:
         if subject.name == "6dbe" and not include_wrong_recording:
             continue
         yield subject.name
+
 
 
 def get_all_tests(subject_id: str, data_folder=None):

@@ -1,17 +1,9 @@
 import warnings
 from pathlib import Path
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Dict
 
 import pandas as pd
 from gaitmap.future.dataset import Dataset
-from gaitmap.utils.datatype_helper import (
-    StrideList,
-    MultiSensorData,
-    PositionList,
-    get_multi_sensor_names,
-    MultiSensorStrideList,
-)
-from gaitmap_io.coordinate_system_transformation import COORDINATE_TRANSFORMATION_DICT
 from imucal.management import CalibrationWarning
 from joblib import Memory
 from nilspodlib.exceptions import LegacyWarning, CorruptedPackageWarning, SynchronisationWarning
@@ -27,8 +19,8 @@ from sensor_position_dataset_helper import (
     get_mocap_test,
     get_mocap_events,
     get_foot_sensor,
-    rotate_dataset,
 )
+from sensor_position_dataset_helper.internal_helpers import COORDINATE_TRANSFORMATION_DICT, rotate_dataset
 
 
 def get_memory(mem):
@@ -40,7 +32,7 @@ def get_memory(mem):
 def align_coordinates(multi_sensor_data: pd.DataFrame):
     feet = {"r": "right", "l": "left"}
     rotations = {}
-    for s in get_multi_sensor_names(multi_sensor_data):
+    for s in multi_sensor_data.columns.unique(level=0):
         if "_" not in s:
             continue
         foot, pos = s.split("_")
@@ -87,7 +79,7 @@ class _SensorPostionDataset(Dataset):
         return 204.8
 
     @property
-    def segmented_stride_list_(self) -> MultiSensorStrideList:
+    def segmented_stride_list_(self) -> Dict[str, pd.DataFrame]:
         """Returns the manual segmented stride list per foot."""
         self.assert_is_single(None, "segmented_stride_list_")
         sl = self._get_segmented_stride_list(self.index)
@@ -95,7 +87,7 @@ class _SensorPostionDataset(Dataset):
         sl = {k: v.drop("foot", axis=1) for k, v in sl.groupby("foot")}
         return sl
 
-    def _get_segmented_stride_list(self, index) -> StrideList:
+    def _get_segmented_stride_list(self, index) -> pd.DataFrame:
         raise NotImplementedError()
 
     def _get_base_df(self):
@@ -113,7 +105,7 @@ class _SensorPostionDataset(Dataset):
         return session_df
 
     @property
-    def segmented_stride_list_per_sensor_(self) -> MultiSensorStrideList:
+    def segmented_stride_list_per_sensor_(self) -> Dict[str, pd.DataFrame]:
         stride_list = self.segmented_stride_list_
         final_stride_list = {}
         for foot in ["left", "right"]:
@@ -125,13 +117,13 @@ class _SensorPostionDataset(Dataset):
 
 class SensorPositionDatasetSegmentation(_SensorPostionDataset):
     @property
-    def data(self) -> MultiSensorData:
+    def data(self) -> pd.DataFrame:
         df = self._get_base_df()
         df = df.reset_index(drop=True)
         df.index /= self.sampling_rate_hz
         return df
 
-    def _get_segmented_stride_list(self, index) -> StrideList:
+    def _get_segmented_stride_list(self, index) -> pd.DataFrame:
         stride_list = get_manual_labels(index["participant"].iloc[0], self.data_folder)
         stride_list = stride_list.set_index("s_id")
         return stride_list
@@ -167,7 +159,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
         )
 
     @property
-    def data(self) -> MultiSensorData:
+    def data(self) -> pd.DataFrame:
         """The data per gait test.
 
         Get the data per gait test.
@@ -195,7 +187,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
     def data_padding_imu_samples(self):
         return int(round(self.data_padding_s * self.sampling_rate_hz))
 
-    def _get_segmented_stride_list(self, index) -> StrideList:
+    def _get_segmented_stride_list(self, index) -> pd.DataFrame:
         stride_list = get_manual_labels_for_test(
             index["participant"].iloc[0], index["test"].iloc[0], data_folder=self.data_folder
         )
@@ -204,7 +196,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
         return stride_list
 
     @property
-    def mocap_events_(self) -> StrideList:
+    def mocap_events_(self) -> Dict[str, pd.DataFrame]:
         """Get mocap events calculated the Zeni Algorithm.
 
         Note that the events are provided in mocap samples after the start of the test.
@@ -222,7 +214,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
         return 100.0
 
     @property
-    def marker_position_(self) -> PositionList:
+    def marker_position_(self) -> pd.DataFrame:
         """Get the marker trajectories of a test.
 
         Note the index is provided in seconds after the start of the test.
