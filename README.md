@@ -1,3 +1,7 @@
+[![PyPI](https://img.shields.io/pypi/v/tpcp)](https://pypi.org/project/sensor_position_dataset_helper/)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/sensor_position_dataset_helper)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 # SensorPositionComparison Helper
 
 This is a helper module to extract and handle the data of the [SensorPositionComparison Dataset](TODO: Add updated link).
