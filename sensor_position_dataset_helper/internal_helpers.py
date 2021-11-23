@@ -13,6 +13,7 @@ import numpy as np
 import pandas as pd
 from numpy.linalg import norm
 from scipy.spatial.transform import Rotation
+
 #: The default names of the Gyroscope columns in the sensor frame
 from typing_extensions import Literal
 
