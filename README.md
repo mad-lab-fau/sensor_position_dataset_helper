@@ -1,19 +1,22 @@
 # SensorPositionComparison Helper
 
-This is a helper module to extract and handle the data of the
-[SensorPositionComparison dataset](https://mad-srv.informatik.uni-erlangen.de/MadLab/data/sensorpositoncomparison).
+This is a helper module to extract and handle the data of the [SensorPositionComparison Dataset](TODO: Add updated link).
+
+If you use the dataset and this module, please cite:
+TODO: Add citation once published
 
 ## Installation and Usage
 
 Install the project via `pip` or `poetry`:
 
 ```
-pip install git+https://mad-srv.informatik.uni-erlangen.de/MadLab/data/SensorPositionComparisonHelper
-poetry add git+https://mad-srv.informatik.uni-erlangen.de/MadLab/data/SensorPositionComparisonHelper
+pip install sensor_position_dataset_helper
 ```
 
 ## Dataset Handling
-You also need to download the actual Dataset from [here](https://mad-srv.informatik.uni-erlangen.de/MadLab/data/sensorpositoncomparison).
+You also need to download the actual Dataset from [here](TODO: Add updated link).
+If you are member of the matlab, you can also get a git-lfs version from 
+[our internal server](https://mad-srv.informatik.uni-erlangen.de/MadLab/data/sensorpositoncomparison).
 
 Then you need to tell this library about the position of the dataset.
 Note that the path should point to the top-level repo folder of the dataset.
@@ -24,7 +27,7 @@ from sensor_position_dataset_helper import set_data_folder
 set_data_folder("PATH/TO/THE_DATASET")
 ```
 
-You can also overwrite this pass on a per function basis:
+You can also overwrite this pass on a per-function basis:
 
 ```python
 from sensor_position_dataset_helper import get_all_subjects
@@ -45,6 +48,7 @@ dataset = SensorPositionDatasetSegmentation(dataset_path="PATH/TO/THE_DATASET")
 To ensure reproducibility, you should save the version of the dataset that was used for a certain analysis.
 This can be easily done by placing the following line at the top of your script:
 
+TODO: Add information for non git versions of the dataset
 ```python
 from sensor_position_dataset_helper import ensure_git_revision
 
@@ -55,6 +59,3 @@ This will produce an error, if the dataset version you are using is not the one 
 uncommitted changes.
 This will prevent bugs, because you accidentally use the wrong dataset version and will directly document the correct 
 version.
-
-For very important work, it is also a good idea to register the dataset as a git-submodule of your analysis project and
-keep it pinned at the correct version that way.
