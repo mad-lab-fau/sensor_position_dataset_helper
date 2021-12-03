@@ -129,9 +129,15 @@ mocap_traj = data_point.marker_position_
 ## Managing Dataset Revisions
 
 To ensure reproducibility, you should save the version of the dataset that was used for a certain analysis.
-This can be easily done by placing the following line at the top of your script:
+If you are part of the MaD-Lab and using the internal git-versioned version of the dataset we provide some helpers.
 
-TODO: Add information for non git versions of the dataset
+If you are using the version from Zenodo, we unfortunally have no easy way to verify the version and integrity of the
+extracted data on disk.
+Therefore, make sure to document the version of the Zenodo dataset and verify the md5 hasshum of the zip-file you 
+downloaded from Zenodo.
+
+For the git version you can use the helper as follows:
+
 ```python
 from sensor_position_dataset_helper import ensure_git_revision
 
