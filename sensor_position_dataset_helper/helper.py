@@ -9,10 +9,15 @@ import git
 import numpy as np
 import pandas as pd
 from nilspodlib import SyncedSession
+from scipy.spatial.transform import Rotation
 from typing_extensions import Literal
 
 from sensor_position_dataset_helper.consts import Consts
-from sensor_position_dataset_helper.internal_helpers import rotation_from_angle, rotate_dataset
+from sensor_position_dataset_helper.internal_helpers import (
+    rotation_from_angle,
+    rotate_dataset,
+    COORDINATE_TRANSFORMATION_DICT,
+)
 
 
 def _get_repo_state(repo, version="HEAD"):
@@ -47,10 +52,22 @@ def ensure_git_revision(data_folder=None, version="HEAD"):
 
 
 def set_data_folder(path):
+    """Register the data folder path.
+
+    This globally registers the data path and uses it as default, if `data_folder` is not provided to a specific
+    function call.
+    """
     Consts._DATA = path
 
 
 def get_data_folder(data_folder=None, data_subfolder=True):
+    """Get the data folder.
+
+    This provides the default set using `set_data_folder` if `data_folder` is None.
+    Otherwise `data_folder` is returned.
+
+    If `data_subfolder` is True, the `/data` subfolder of the `data_folder` is returned
+    """
     data_folder = Path(data_folder or Consts().DATA)
     if data_subfolder:
         return Path(data_folder) / "data"
@@ -163,9 +180,9 @@ def get_imu_test(
         Providing it, can improve performance if multiple tests from the same subject are required.
     padding_s
         Additional padding for and after the test that is included in the output.
-        This might be helpful to get a longer region of now movement before the test starts to perform gravity
+        This might be helpful to get a longer region of no movement before the test starts to perform gravity
         alignments.
-        **Remember to remove the padding before comparing the output with the mocap data or the manual labeld stride
+        **Remember to remove the padding before comparing the output with the mocap data or the manual labeled stride
         borders**
     """
     if session_df is None:
@@ -287,3 +304,20 @@ def get_foot_marker(foot: Literal["left", "right"]) -> List[str]:
     """Get the names of all markers that are attached ot a foot (left or right)"""
     sensors = ["{}_fcc", "{}_toe", "{}_fm5", "{}_fm1"]
     return [s.format(foot[0]) for s in sensors]
+
+
+def align_coordinates(multi_sensor_data: pd.DataFrame):
+    """Helper to rotate all coordinate systems into the expected foot-sensor-frame."""
+    feet = {"r": "right", "l": "left"}
+    rotations = {}
+    for s in multi_sensor_data.columns.unique(level=0):
+        if "_" not in s:
+            continue
+        foot, pos = s.split("_")
+        rot = COORDINATE_TRANSFORMATION_DICT.get("qualisis_{}_nilspodv1".format(pos), None)
+        if not rot:
+            continue
+        rotations[s] = Rotation.from_matrix(rot["{}_sensor".format(feet[foot])])
+    ds = rotate_dataset(multi_sensor_data.drop(columns="sync"), rotations)
+    ds["sync"] = multi_sensor_data["sync"]
+    return ds

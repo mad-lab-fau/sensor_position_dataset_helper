@@ -1,3 +1,19 @@
+"""A object oriented interface for the dataset using the tpcp library.
+
+We provide 2 versions of the dataset:
+
+SensorPositionDatasetSegmentation: In this dataset no Mocap ground truth is provided and the IMu data is not cut to
+    the individdual gait test, but just a single recording for all participants exists with all tests (including
+    failed once) and movement between the tests.
+    This can be used for stride segmentation tasks, as we hand-labeled all stride-start-end events in these recordings
+SensorPositionDatasetMocap: In this dataset the data is cut into the individual tests.
+    This means 7 data segments exist per participants.
+    For each of these segments full synchronised motion capture reference is provided.
+
+For more information about these types of datasets, see the `tpcp` [documentation](https://github.com/mad-lab-fau/tpcp).
+For more information about the dataset, see the dataset [documentation](https://zenodo.org/record/5747173)
+"""
+
 import warnings
 from pathlib import Path
 from typing import Optional, List, Union, Dict
@@ -6,7 +22,6 @@ import pandas as pd
 from imucal.management import CalibrationWarning
 from joblib import Memory
 from nilspodlib.exceptions import LegacyWarning, CorruptedPackageWarning, SynchronisationWarning
-from scipy.spatial.transform import Rotation
 from tpcp import Dataset
 
 from sensor_position_dataset_helper import (
@@ -19,8 +34,8 @@ from sensor_position_dataset_helper import (
     get_mocap_test,
     get_mocap_events,
     get_foot_sensor,
+    align_coordinates,
 )
-from sensor_position_dataset_helper.internal_helpers import COORDINATE_TRANSFORMATION_DICT, rotate_dataset
 
 
 def get_memory(mem):
@@ -29,23 +44,7 @@ def get_memory(mem):
     return mem
 
 
-def align_coordinates(multi_sensor_data: pd.DataFrame):
-    feet = {"r": "right", "l": "left"}
-    rotations = {}
-    for s in multi_sensor_data.columns.unique(level=0):
-        if "_" not in s:
-            continue
-        foot, pos = s.split("_")
-        rot = COORDINATE_TRANSFORMATION_DICT.get("qualisis_{}_nilspodv1".format(pos), None)
-        if not rot:
-            continue
-        rotations[s] = Rotation.from_matrix(rot["{}_sensor".format(feet[foot])])
-    ds = rotate_dataset(multi_sensor_data.drop(columns="sync"), rotations)
-    ds["sync"] = multi_sensor_data["sync"]
-    return ds
-
-
-def get_session_and_align(participant, data_folder):
+def _get_session_and_align(participant, data_folder):
     session_df = get_session_df(participant, data_folder=data_folder)
     return align_coordinates(session_df)
 
@@ -74,6 +73,7 @@ class _SensorPostionDataset(Dataset):
 
     @property
     def sampling_rate_hz(self) -> float:
+        """The sampling rate of the IMUs."""
         return 204.8
 
     @property
@@ -95,7 +95,7 @@ class _SensorPostionDataset(Dataset):
                 "ignore", (LegacyWarning, CorruptedPackageWarning, CalibrationWarning, SynchronisationWarning)
             )
             if self.align_data is True:
-                session_df = get_memory(self.memory).cache(get_session_and_align)(
+                session_df = get_memory(self.memory).cache(_get_session_and_align)(
                     self.index["participant"].iloc[0], data_folder=self.data_folder
                 )
             else:
@@ -106,6 +106,12 @@ class _SensorPostionDataset(Dataset):
 
     @property
     def segmented_stride_list_per_sensor_(self) -> Dict[str, pd.DataFrame]:
+        """The segmented stride list per sensor.
+
+        Instead of providing the stride list per foot, this ouput has all the sensors as keys and the correct
+        stridelist (either left or right foot) as value.
+        This can be helpful, if you want to iterate over all sensors and get the correct stride list.
+        """
         stride_list = self.segmented_stride_list_
         final_stride_list = {}
         for foot in ["left", "right"]:
@@ -116,6 +122,31 @@ class _SensorPostionDataset(Dataset):
 
 
 class SensorPositionDatasetSegmentation(_SensorPostionDataset):
+    """A dataset for stride segmentation benchmarking.
+
+    Data is only loaded once the respective attributes are accessed.
+    This means filtering the dataset should be fast, but accessing attributes like `.data` can be slow.
+    By default we do not perform any caching of these values.
+    This means, if you need to use the value multiple times, the best way is to assign it to a variable.
+    Alternatively, you can use the `memory` parameter to create a disk based cache for the data loading.
+
+    Parameters
+    ----------
+    data_folder
+        The base folder where the dataset can be found.
+    include_wrong_recording
+        If True the first trail of 6dbe is included, which has one missing sensor
+    align_data
+        If True the coordinate systems of all sensors are roughly aligned based on their known mounting orientation
+    memory
+        Optional joblib memory object to cache the data loading. Note that this can lead to large hard disk usage!
+    groupby_cols
+        `tpcp` internal parameters.
+    subset_index
+        `tpcp` internal parameters.
+
+    """
+
     @property
     def data(self) -> pd.DataFrame:
         df = self._get_base_df()
@@ -135,6 +166,40 @@ class SensorPositionDatasetSegmentation(_SensorPostionDataset):
 
 
 class SensorPositionDatasetMocap(_SensorPostionDataset):
+    """A dataset for trajectory benchmarking.
+
+    Data is only loaded once the respective attributes are accessed.
+    This means filtering the dataset should be fast, but accessing attributes like `.data` can be slow.
+    By default we do not perform any caching of these values.
+    This means, if you need to use the value multiple times, the best way is to assign it to a variable.
+    Alternatively, you can use the `memory` parameter to create a disk based cache for the data loading.
+
+    Parameters
+    ----------
+    data_folder
+        The base folder where the dataset can be found.
+    include_wrong_recording
+        If True the first trail of 6dbe is included, which has one missing sensor
+    align_data
+        If True the coordinate systems of all sensors are roughly aligned based on their known mounting orientation
+    data_padding_s
+        A number of seconds that are added to the start and the end of each IMU recording.
+        This can be used to get a longer static period before each gait test to perform e.g. gravity based alignments.
+        For samples before the start of the gait test, the second index of the pd.DataFrame is set to negative values.
+        This should make it easy to remove the padded values if required.
+
+        .. warning:: The same padding is not applied to the mocap samples (as we do not have any mocap samples
+                     outside the gait tests!
+                     However, the time value provided in the index of the pandas Dataframe are still aligned!
+    memory
+        Optional joblib memory object to cache the data loading. Note that this can lead to large hard disk usage!
+    groupby_cols
+        `tpcp` internal parameters.
+    subset_index
+        `tpcp` internal parameters.
+
+    """
+
     data_padding_s: int
 
     def __init__(
@@ -185,6 +250,7 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
 
     @property
     def data_padding_imu_samples(self):
+        """The actual padding in samples based on `data_padding_s`."""
         return int(round(self.data_padding_s * self.sampling_rate_hz))
 
     def _get_segmented_stride_list(self, index) -> pd.DataFrame:
@@ -211,13 +277,14 @@ class SensorPositionDatasetMocap(_SensorPostionDataset):
 
     @property
     def mocap_sampling_rate_hz_(self) -> float:
+        """The sampling rate of the motion capture system."""
         return 100.0
 
     @property
     def marker_position_(self) -> pd.DataFrame:
         """Get the marker trajectories of a test.
 
-        Note the index is provided in seconds after the start of the test.
+        Note the index is provided in seconds after the start of the test and `self.data_padding_s` is ignored!
         """
         self.assert_is_single(None, "marker_position_")
         df = get_memory(self.memory).cache(get_mocap_test)(
