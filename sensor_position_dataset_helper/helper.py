@@ -157,6 +157,10 @@ def get_session_df(subject_id: str, data_folder=None) -> pd.DataFrame:
         rotation = rotation_from_angle(np.deg2rad(180), np.array([0, 0, 1]))
         df = rotate_dataset(df, {"l_cavity": rotation})
 
+    if subject_id in ["4d91", "5237", "80b8", "c9bb"]:
+        rotation = rotation_from_angle(np.deg2rad(180), np.array([0, 0, 1]))
+        df = rotate_dataset(df, {"l_medial": rotation})
+
     df[("sync", "trigger")] = trigger
     return df
 
