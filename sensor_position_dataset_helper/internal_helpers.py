@@ -238,8 +238,7 @@ def sliding_window_view(arr: np.ndarray, window_length: int, overlap: int, nan_p
 
 
 def enforce_stride_list_consistency(
-    stride_list: pd.DataFrame,
-    stride_type=Literal["segmented", "min_vel", "ic"],
+    stride_list: pd.DataFrame, stride_type=Literal["segmented", "min_vel", "ic"]
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Exclude those strides where the gait events do not match the expected order or contain NaN.
 

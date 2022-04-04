@@ -31,10 +31,7 @@ class ZeniEventDetection:
     _z_axis: np.ndarray = np.array([0, 0, 1.0])
     _default_sagittal_plane = np.array([0, 1.0, 0])
 
-    def __init__(
-        self,
-        min_vel_search_win_size: int = 10,
-    ):
+    def __init__(self, min_vel_search_win_size: int = 10):
         self.min_vel_search_win_size = min_vel_search_win_size
 
     def detect(
