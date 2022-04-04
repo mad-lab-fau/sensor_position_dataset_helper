@@ -193,10 +193,10 @@ def get_imu_test(
         session_df = get_session_df(subject, data_folder=data_folder)
     meta_data = get_metadata_subject(subject, data_folder=data_folder)
     test_start = pd.Timestamp(
-        np.datetime64(meta_data["imu_tests"][test_name]["start"]) - np.timedelta64(padding_s, "s"), tz="UTC"
+        np.datetime64(meta_data["imu_tests"][test_name]["start"]) - np.timedelta64(padding_s, "s")).tz_localize('UTC')
     )
     test_stop = pd.Timestamp(
-        np.datetime64(meta_data["imu_tests"][test_name]["stop"]) + np.timedelta64(padding_s, "s"), tz="UTC"
+        np.datetime64(meta_data["imu_tests"][test_name]["stop"]) + np.timedelta64(padding_s, "s")).tz_localize('UTC')
     )
     test = session_df.loc[test_start:test_stop]
     return test
