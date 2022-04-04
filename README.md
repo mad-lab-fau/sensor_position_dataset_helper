@@ -21,7 +21,7 @@ poetry add sensor_position_dataset_helper
 ## Dataset Handling
 
 You also need to download the actual Dataset from [here](https://zenodo.org/record/5747173).
-If you are member of the matlab, you can also get a git-lfs version from 
+If you are member of the [MaD Lab](https://www.mad.tf.fau.de), you can also get a git-lfs version from 
 [our internal server](https://mad-srv.informatik.uni-erlangen.de/MadLab/data/sensorpositoncomparison).
 
 Then you need to tell this library about the position of the dataset.
