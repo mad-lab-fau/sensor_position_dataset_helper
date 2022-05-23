@@ -85,7 +85,7 @@ class ZeniEventDetection:
         min_vel_search_win_size = self.min_vel_search_win_size
         combined = np.hstack([toe, fcc])
         speed = np.diff(combined, axis=0)
-        energy = np.sum(speed ** 2, axis=1)
+        energy = np.sum(speed**2, axis=1)
         energy = sliding_window_view(energy, window_length=min_vel_search_win_size, overlap=min_vel_search_win_size - 1)
         # find window with lowest summed energy
         min_vel_start = np.argmin(np.sum(energy, axis=1))
