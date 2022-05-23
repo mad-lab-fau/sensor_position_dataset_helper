@@ -129,5 +129,3 @@ _debug/
 **/.virtual_documents
 
 .idea
-
-poetry.lock
