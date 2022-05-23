@@ -4,10 +4,13 @@
 
 # SensorPositionComparison Helper
 
-This is a helper module to extract and handle the data of the [SensorPositionComparison Dataset](TODO: Add updated link).
+This is a helper module to extract and handle the data of the [SensorPositionComparison Dataset](https://zenodo.org/record/5747173).
 
-If you use the dataset and this module, please cite:
-TODO: Add citation once published
+If you use the dataset or this package, please cite:
+
+The placement of foot-mounted IMU sensors does affect the accuracy of spatial parameters during regular walking
+Arne Küderle, Nils Roth, Jovana Zlatanovic, Markus Zrenner, Bjoern Eskofier, Felix Kluge
+medRxiv 2022.05.20.22275197; doi: https://doi.org/10.1101/2022.05.20.22275197
 
 ## Installation and Usage
 
