@@ -9,9 +9,10 @@ This is a helper module to extract and handle the data of the [SensorPositionCom
 If you use the dataset or this package, please cite:
 
 ```
-Küderle A, Roth N, Zlatanovic J, Zrenner M, Eskofier B, et al. (2022)
-The placement of foot-mounted IMU sensors does affect the accuracy of spatial parameters during regular walking.
-PLOS ONE 17(6): e0269567. https://doi.org/10.1371/journal.pone.0269567
+Küderle, Arne, Nils Roth, Jovana Zlatanovic, Markus Zrenner, Bjoern Eskofier, and Felix Kluge.
+“The Placement of Foot-Mounted IMU Sensors Does Affect the Accuracy of Spatial Parameters during Regular Walking.”
+PLOS ONE 17, no. 6 (June 9, 2022): e0269567. https://doi.org/10.1371/journal.pone.0269567.
+
 ```
 
 ## Installation and Usage
