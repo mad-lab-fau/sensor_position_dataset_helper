@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sensor_position_dataset_helper"
-version = "1.1.1"
+version = "1.2.0"
 description = "A helper for the SensorPositionDateset (recorded 2019, published 2021)"
 license = "MIT"
 authors = ["Arne Küderle <arne.kuederle@fau.de>"]
