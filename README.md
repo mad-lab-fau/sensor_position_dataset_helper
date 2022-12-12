@@ -2,6 +2,8 @@
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/sensor_position_dataset_helper)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
+# THIS PACKAGE IS DEPRECATED AND NOT UPDATED ANYMORE! USE [MAD DATASETS](https://github.com/mad-lab-fau/mad-datasets) INSTEAD. THIS PACKAGE SHOULD ONLY BE USED, TO REPLICATE THE EXACT RESULTS OF THE PUBLICATION!
+
 # SensorPositionComparison Helper
 
 This is a helper module to extract and handle the data of the [SensorPositionComparison Dataset](https://zenodo.org/record/5747173).
